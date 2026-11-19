@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
 // Roles per the revised capstone proposal (Section 3.4 class diagram):
@@ -48,12 +49,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [pendingConfirmation, setPendingConfirmation] = useState(false);
 
-  const loadProfile = async (accessToken: string) => {
-    const res = await fetch("/api/auth/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
+  const assignRole = async (
+    accessToken: string,
+    data: Omit<SignupData, "email" | "password">
+  ) => {
+    return fetch("/api/auth/set-role", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        role: data.role,
+        full_name: data.full_name,
+        company_name: data.company_name,
+        precise_location_consent: data.precise_location_consent,
+      }),
     });
-    if (!res.ok) return null;
-    return (await res.json()) as User;
+  };
+
+  const loadProfile = async (session: Session) => {
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (res.ok) return (await res.json()) as User;
+
+    // With email confirmation on, signUp() returns no session, so set-role
+    // can't run at signup time. The signup form's choices are stashed in
+    // user_metadata instead; finish role assignment on the first login.
+    const meta = session.user?.user_metadata || {};
+    if (res.status === 401 && meta.role && meta.full_name) {
+      const setRes = await assignRole(session.access_token, {
+        role: meta.role,
+        full_name: meta.full_name,
+        company_name: meta.company_name,
+        precise_location_consent: !!meta.precise_location_consent,
+      });
+      if (setRes.ok) return (await setRes.json()) as User;
+    }
+    return null;
   };
 
   useEffect(() => {
@@ -61,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session && mounted) {
-        const profile = await loadProfile(session.access_token);
+        const profile = await loadProfile(session);
         if (mounted) setUser(profile);
       }
       if (mounted) setLoading(false);
@@ -70,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session) {
-          const profile = await loadProfile(session.access_token);
+          const profile = await loadProfile(session);
           setUser(profile);
         } else {
           setUser(null);
@@ -93,6 +127,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        // Kept in user_metadata so role assignment can be completed on first
+        // login if email confirmation means there's no session right now.
+        data: {
+          full_name: data.full_name,
+          role: data.role,
+          company_name: data.company_name,
+          precise_location_consent: !!data.precise_location_consent,
+        },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
     if (error) throw new Error(error.message);
 
@@ -103,19 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const res = await fetch("/api/auth/set-role", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        role: data.role,
-        full_name: data.full_name,
-        company_name: data.company_name,
-        precise_location_consent: data.precise_location_consent,
-      }),
-    });
+    const res = await assignRole(session.access_token, data);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: "Failed to assign role" }));
       throw new Error(err.detail || "Failed to assign role");
