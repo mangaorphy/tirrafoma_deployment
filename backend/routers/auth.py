@@ -121,6 +121,24 @@ async def get_current_profile(caller: AuthedUser = Depends(get_current_user)):
 
     profile = result.data[0] if result.data else {}
 
+    # A role-holding account can exist without a profiles row (e.g. role set
+    # directly in app_metadata, or set-role failed after assigning the role).
+    # land_plots/carbon_credits/notifications all FK to profiles(id), so a
+    # missing row makes scans and registrations fail. Self-heal here, since
+    # /me runs on every login.
+    if not profile:
+        try:
+            created = db.table("profiles").upsert({
+                "id": caller.id,
+                "email": caller.email,
+                "full_name": (caller.email or "").split("@")[0],
+                "created_at": datetime.now().isoformat(),
+            }).execute()
+            profile = created.data[0] if created.data else {}
+            logger.info(f"/me: created missing profile row for {caller.email}")
+        except Exception as e:
+            logger.error(f"/me: failed to create missing profile for {caller.id}: {e}")
+
     return ProfileResponse(
         id=caller.id,
         email=caller.email,
