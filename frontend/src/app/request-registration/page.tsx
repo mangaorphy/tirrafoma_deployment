@@ -54,7 +54,7 @@ function RequestRegistrationContent() {
         const { mapboxToken } = config;
         if (!mapboxToken) {
           console.error('❌ Mapbox token not configured - token is empty or undefined');
-          console.error('This usually means NEXT_PUBLIC_MAPBOX_TOKEN is not set in Railway');
+          console.error('This usually means NEXT_PUBLIC_MAPBOX_TOKEN is not set in your hosting env vars');
           alert('Map configuration error: Mapbox token not found. Please contact administrator.');
           return;
         }

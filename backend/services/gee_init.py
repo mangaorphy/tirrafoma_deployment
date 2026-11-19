@@ -3,7 +3,7 @@ Centralized Google Earth Engine initialization.
 
 Credential resolution order:
   1. GEE_SERVICE_ACCOUNT_KEY env var — full service-account JSON as a string
-     (the recommended approach for Railway / any container deployment)
+     (the recommended approach for Render / any container deployment)
   2. GOOGLE_APPLICATION_CREDENTIALS env var — path to a JSON key file
      (standard local-dev approach)
   3. Application default credentials — gcloud auth / Workload Identity
@@ -40,7 +40,7 @@ def initialize_gee() -> bool:
 
         project = os.environ.get("EARTHENGINE_PROJECT_ID", "").strip() or None
 
-        # ── Option 1: full JSON via env var (production / Railway) ──────────
+        # ── Option 1: full JSON via env var (production / Render) ───────────
         key_str = os.environ.get("GEE_SERVICE_ACCOUNT_KEY", "").strip()
         if key_str:
             key_data = json.loads(key_str)

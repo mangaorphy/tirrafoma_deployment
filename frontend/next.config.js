@@ -5,11 +5,14 @@ const nextConfig = {
   // Proxy all /api/* requests to the backend so the browser never needs
   // to know the backend URL (no NEXT_PUBLIC_API_URL required at build time).
   async rewrites() {
-    const backendUrl =
+    // In production set BACKEND_URL (e.g. https://terrafoma-backend.onrender.com)
+    // in the Vercel project settings BEFORE building — rewrites are baked in at build time.
+    const backendUrl = (
       process.env.BACKEND_URL ||
       (process.env.NODE_ENV === "production"
-        ? "https://missioncapstone-production.up.railway.app/"
-        : "http://localhost:8002");
+        ? "https://terrafoma-backend.onrender.com"
+        : "http://localhost:8002")
+    ).replace(/\/+$/, "");
     return {
       // afterFiles: only proxy to backend if no local Next.js route handler matches.
       // This ensures /api/config, /api/checkout, /api/confirm-payment, /api/webhooks

@@ -1,5 +1,5 @@
-# Alternative Dockerfile for Railway deployment
-# Use this if Nixpacks continues to crash
+# Optional Dockerfile for self-hosting the frontend (Vercel does not use this)
+
 
 FROM node:20-alpine AS base
 
@@ -18,8 +18,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Declare Railway build-time variables so next build can bake NEXT_PUBLIC_* into the bundle.
-# Without ARG declarations, these are invisible to the Docker build step even if set in Railway.
+# Declare build-time variables so next build can bake NEXT_PUBLIC_* into the bundle.
+# Without ARG declarations, these are invisible to the Docker build step even if set in the host.
 ARG NEXT_PUBLIC_MAPBOX_TOKEN
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SUPABASE_URL
@@ -55,7 +55,7 @@ USER nextjs
 
 EXPOSE 3000
 
-# Let Railway set PORT dynamically, default to 3000 for local
+# Let the host set PORT dynamically, default to 3000 for local
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]

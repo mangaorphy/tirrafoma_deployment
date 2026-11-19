@@ -1,5 +1,11 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from dotenv import load_dotenv
 import os
+
+# Also load the root .env into os.environ so modules that read os.environ
+# directly (e.g. services/gee_init.py) see local secrets. Real environment
+# variables (Render, etc.) take precedence and are not overridden.
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
 
 class Settings(BaseSettings):

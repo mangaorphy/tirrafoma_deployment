@@ -1,0 +1,36 @@
+# Render Blueprint — FastAPI backend on Render's free tier.
+# Frontend is deployed separately on Vercel (root directory: frontend).
+#
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+# Secrets marked `sync: false` are prompted for on first deploy.
+services:
+  - type: web
+    name: terrafoma-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: APP_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # Full Google service-account JSON pasted as a single line
+      - key: GEE_SERVICE_ACCOUNT_KEY
+        sync: false
+      - key: EARTHENGINE_PROJECT_ID
+        sync: false
+      # Comma-separated, e.g. https://your-app.vercel.app,http://localhost:3001
+      - key: CORS_ORIGINS
+        sync: false

@@ -611,7 +611,6 @@ mission_capstone/
 │   ├── .env.local                    # Frontend environment variables (local)
 │   ├── .env.example                  # Template for .env.local
 │   ├── Dockerfile                    # Container image definition
-│   ├── railway.json                  # Railway.app deployment config
 │   │
 │   ├── src/
 │   │   ├── app/                      # Next.js 14 App Router
@@ -728,6 +727,20 @@ curl -s http://localhost:8002/docs | grep -q "FastAPI" && echo "✓ Backend OK" 
 - Solution: Verify internet connection and that Supabase project is active (check at supabase.com/projects)
 
 For more help, check [docs/SETUP.md](docs/SETUP.md) or [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
+
+---
+
+## Deployment (free tier)
+
+| Component | Host | Notes |
+| --- | --- | --- |
+| Backend (FastAPI) | Render free web service | Configured by [`render.yaml`](render.yaml). Sleeps after 15 min idle (~30–60 s cold start). |
+| Frontend (Next.js) | Vercel Hobby | Root directory `frontend`. |
+| Database / Auth | Supabase free | Pauses after ~1 week of inactivity. |
+
+1. **Backend:** Render → New → Blueprint → select this repo. Fill in the prompted secrets (`SUPABASE_*`, `GEE_SERVICE_ACCOUNT_KEY`, `EARTHENGINE_PROJECT_ID`, `CORS_ORIGINS`).
+2. **Frontend:** Vercel → Import project → root directory `frontend`. Set `BACKEND_URL` (Render URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_MAPBOX_TOKEN` **before** the first build.
+3. **Supabase:** Auth → URL Configuration → add the Vercel URL as Site URL and redirect URL.
 
 ---
 
